@@ -120,22 +120,7 @@ bool Arg::match(const std::string &arg) const noexcept
 inline
 std::string Arg::toString() const
 {
-    if (!shortOpt.empty() && !longOpt.empty())
-    {
-        return fmt::format("-{} --{}", shortOpt, longOpt);
-    }
-
-    if (!shortOpt.empty())
-    {
-        return fmt::format("-{}", shortOpt);
-    }
-
-    if (!longOpt.empty())
-    {
-        return fmt::format("--{}", longOpt);
-    }
-
-    throw std::runtime_error("Empty argument");
+    return fmt::format("-{}, --{}", shortOpt, longOpt);
 }
 
 inline
@@ -180,7 +165,7 @@ std::string Arg::toVerboseString() const
 {
     if (hasDefaultValue())
     {
-        return fmt::format("{}, help: {}, default: {}", toString(), helpMsg, getDefaultValue());
+        return fmt::format("{}\n\tdescription: {}, default: {}", toString(), helpMsg, getDefaultValue());
     }
-    return fmt::format("{}, help: {}", toString(), helpMsg);
+    return fmt::format("{}\n\tdescription: {}", toString(), helpMsg);
 }

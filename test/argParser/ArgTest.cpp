@@ -12,8 +12,8 @@ TEST_F(ArgTest, ContructionTest)
     const Arg arg{"-l", "--logfile", "logfile path"};
     EXPECT_EQ("l", arg.getShortOpt());
     EXPECT_EQ("logfile", arg.getLongOpt());
-    EXPECT_EQ("-l --logfile", arg.toString());
-    EXPECT_EQ("-l --logfile, help: logfile path", arg.toVerboseString());
+    EXPECT_EQ("-l, --logfile", arg.toString());
+    EXPECT_EQ("-l, --logfile\n\tdescription: logfile path", arg.toVerboseString());
     EXPECT_FALSE(arg.hasDefaultValue());
 }
 
@@ -22,8 +22,8 @@ TEST_F(ArgTest, DefaultValueTest)
     const Arg arg{"-c", "--count", "To get the counter", "58"};
     EXPECT_EQ("c", arg.getShortOpt());
     EXPECT_EQ("count", arg.getLongOpt());
-    EXPECT_EQ("-c --count", arg.toString());
-    EXPECT_EQ("-c --count, help: To get the counter, default: 58", arg.toVerboseString());
+    EXPECT_EQ("-c, --count", arg.toString());
+    EXPECT_EQ("-c, --count\n\tdescription: To get the counter, default: 58", arg.toVerboseString());
     EXPECT_TRUE(arg.hasDefaultValue());
     EXPECT_EQ(arg.getDefaultValue(), "58");
 }
