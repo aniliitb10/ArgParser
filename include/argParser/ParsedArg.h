@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+
 enum class ArgTypeEnum
 {
     Short,
@@ -15,6 +17,7 @@ struct ParsedArg
     static ParsedArg parse_arg(const std::string& arg);
 };
 
+inline
 ParsedArg ParsedArg::parse_arg(const std::string& arg)
 {
     const auto pos = arg.find_first_not_of('-');

@@ -1,13 +1,14 @@
 #pragma once
 
 #include <string>
-#include <Arg.h>
+#include <argParser/Arg.h>
 #include <vector>
 #include <unordered_set>
 #include <unordered_map>
 #include <exception>
 #include <fmt/format.h>
 #include <charconv>
+#include <sstream>
 
 class ArgParser
 {
@@ -25,6 +26,8 @@ public:
 
     template <typename T = std::string>
     T retrieve(const std::string& arg);
+
+    std::string show_args() const noexcept;
 
 private:
     static std::pair<ParsedArg, std::string> argValueParser(const std::string& arg);
@@ -68,7 +71,7 @@ void ArgParser::parse(int argc, char * argv[])
         const auto arg = find_arg(argValPair.first);
         if (!parsedArgs.emplace(arg, argValPair.second).second)
         {
-            throw std::runtime_error{fmt::format("Received multiple values for {}", arg.to_string())};
+            throw std::runtime_error{fmt::format("Received multiple values for {}", arg.toString())};
         }
     }
 
@@ -128,6 +131,15 @@ T ArgParser::convert(const std::string &arg)
     return result;
 }
 
+std::string ArgParser::show_args() const noexcept
+{
+    std::ostringstream os{};
+    for (const auto& arg : allArgs)
+    {
+        os << arg.toVerboseString() << "\n";
+    }
+    return os.str();
+}
 
 template<>
 std::string ArgParser::convert(const std::string &arg)

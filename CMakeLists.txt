@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.17)
 project(ArgParser)
 
 set(CMAKE_CXX_STANDARD 17)
-include_directories(argParser)
+include_directories(include)
 
-add_executable(ArgParser main.cpp)
-target_link_libraries(ArgParser fmt)
+file(GLOB gTestSource "test/argParser/*.cpp")
+
+add_executable(ArgParser main.cpp ${gTestSource} test/TestUtilTest.cpp)
+target_link_libraries(ArgParser fmt gtest pthread)
