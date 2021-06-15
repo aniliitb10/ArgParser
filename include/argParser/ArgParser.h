@@ -14,6 +14,7 @@ class ArgParser
 {
 public:
     ArgParser() = default;
+    explicit ArgParser(std::string description);
 
     ArgParser& addArgument(const std::string& shortOpt, const std::string& longOpt, const std::string &helpMsg);
 
@@ -29,6 +30,7 @@ public:
 
     std::string helpMsg() const noexcept;
     bool needHelp() const noexcept;
+    const std::string& getDescription() const noexcept;
 private:
 
     static std::pair<ParsedArg, std::string> argValueParser(const std::string& arg);
@@ -38,6 +40,11 @@ private:
 
     template <typename T>
     static T convert(const std::string& arg);
+
+    // to describe the app
+    std::string description;
+
+private:
 
     // this keeps the configured arguments
     // Adding -h, --help as this is the default arguments for help
@@ -163,6 +170,12 @@ inline
 std::string ArgParser::helpMsg() const noexcept
 {
     std::ostringstream os{};
+
+    if (!getDescription().empty())
+    {
+        os << getDescription() << "\n";
+    }
+
     os << "Following is a list of configured arguments:\n";
 
     for (const auto& arg : configuredArgs)
@@ -185,6 +198,15 @@ inline
 bool ArgParser::needHelp() const noexcept
 {
     return isOnlyHelpString;
+}
+
+inline
+ArgParser::ArgParser(std::string description) : description(std::move(description))
+{}
+
+const std::string &ArgParser::getDescription() const noexcept
+{
+    return description;
 }
 
 template<>

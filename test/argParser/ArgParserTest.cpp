@@ -141,3 +141,97 @@ TEST_F(ArgParserTest, HelpStringTest)
                                                "-l, --logfile\n\tdescription: logfile path\n"
                                                "-c, --counter\n\tdescription: to get the counter, default: 15\n", topLine));
 }
+
+TEST_F(ArgParserTest, ForbiddenHelpArgs)
+{
+    // This is to test the behavior that user is not allowed to enter 'h' or 'help' as arguments
+    // as these are reserved arguments for getting help
+    ArgParser argParser{};
+    EXPECT_EXCEPTION(argParser.addArgument("-h", "--help", "some description"), std::runtime_error,
+            "Duplicate arguments: -h, --help");
+
+    EXPECT_EXCEPTION(argParser.addArgument("-h", "--hl", "some description"), std::runtime_error,
+                     "Duplicate arguments: -h, --hl");
+
+    EXPECT_EXCEPTION(argParser.addArgument("-hl", "--help", "some description"), std::runtime_error,
+                     "Duplicate arguments: -hl, --help");
+}
+
+TEST_F(ArgParserTest, ShortHelpStringTest)
+{
+    ArgParser argParser{};
+    std::string shortHelpString{"-h"};
+    char * argv[] = {binaryPath.data(), shortHelpString.data()};
+    argParser.parse(2, argv);
+    EXPECT_TRUE(argParser.needHelp());
+}
+
+TEST_F(ArgParserTest, LongHelpStringTest)
+{
+    ArgParser argParser{};
+    std::string LongHelpString{"--help"};
+    char * argv[] = {binaryPath.data(), LongHelpString.data()};
+    argParser.parse(2, argv);
+    EXPECT_TRUE(argParser.needHelp());
+}
+
+TEST_F(ArgParserTest, DoesntNeedHelpWhenNoArgTest)
+{
+    ArgParser argParser{};
+    char * argv[] = {binaryPath.data()};
+    argParser.parse(1, argv);
+    EXPECT_FALSE(argParser.needHelp());
+}
+
+TEST_F(ArgParserTest, DoesntNeedHelpWhenArgsTest)
+{
+    ArgParser argParser{};
+    argParser.addArgument(shortOption, longOption, helpMessage);
+    char * argv[] = {binaryPath.data(), logFilePathLongOption.data()};
+    argParser.parse(2, argv);
+    EXPECT_FALSE(argParser.needHelp());
+}
+
+TEST_F(ArgParserTest, AppNameWhenNoArgsTest)
+{
+    ArgParser argParser{};
+    char * argv[] = {binaryPath.data()};
+    argParser.parse(1, argv);
+    EXPECT_EQ(binaryPath, argParser.getAppName());
+}
+
+TEST_F(ArgParserTest, AppNameWhenArgsTest)
+{
+    ArgParser argParser{};
+    argParser.addArgument(shortOption, longOption, helpMessage);
+    char * argv[] = {binaryPath.data(), logFilePathLongOption.data()};
+    argParser.parse(2, argv);
+    EXPECT_EQ(binaryPath, argParser.getAppName());
+}
+
+TEST_F(ArgParserTest, DescriptionWhenNoArgsTest)
+{
+    ArgParser argParser{"An app for testing"};
+    EXPECT_EQ("An app for testing", argParser.getDescription());
+
+    char * argv[] = {binaryPath.data()};
+    argParser.parse(1, argv);
+    EXPECT_EQ("An app for testing", argParser.getDescription()); // must be same even after parsing
+    EXPECT_EQ(argParser.helpMsg(), "An app for testing\n"
+                                   "Following is a list of configured arguments:\n"
+                                   "-h, --help\n\tdescription: to get this message\n");
+}
+TEST_F(ArgParserTest, DescriptionWhenArgsTest)
+{
+    ArgParser argParser{"An app for testing"};
+    EXPECT_EQ("An app for testing", argParser.getDescription());
+
+    argParser.addArgument(shortOption, longOption, helpMessage);
+    char * argv[] = {binaryPath.data(), logFilePathLongOption.data()};
+    argParser.parse(2, argv);
+    EXPECT_EQ("An app for testing", argParser.getDescription()); // must be same even after parsing
+    EXPECT_EQ(argParser.helpMsg(), "An app for testing\n"
+                                   "Following is a list of configured arguments:\n"
+                                   "-h, --help\n\tdescription: to get this message\n"
+                                   "-l, --logFilePath\n\tdescription: Log file path\n");
+}
