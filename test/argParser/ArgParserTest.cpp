@@ -17,33 +17,33 @@ TEST_F(ArgParserTest, ShortOptionConstructionTest)
 {
     ArgParser argParser{};
     argParser.addArgument(shortOption, longOption, helpMessage);
-    char *argv[] = {binaryPath.data(), logFilePathShortOption.data()};
+    char *argv[] = {&binaryPath[0], &logFilePathShortOption[0]};
     argParser.parse(2, argv);
 
-    EXPECT_EQ(argParser.retrieve("l"), logFilePath);
-    EXPECT_EQ(argParser.retrieve("logFilePath"), logFilePath);
+    EXPECT_EQ(argParser.retrieve("l").first, logFilePath);
+    EXPECT_EQ(argParser.retrieve("logFilePath").first, logFilePath);
 }
 
 TEST_F(ArgParserTest, LongOptionConstructionTest)
 {
     ArgParser argParser{};
     argParser.addArgument(shortOption, longOption, helpMessage);
-    char *argv[] = {binaryPath.data(), logFilePathLongOption.data()};
+    char *argv[] = {&binaryPath[0], &logFilePathLongOption[0]};
     argParser.parse(2, argv);
 
-    EXPECT_EQ(argParser.retrieve("l"), logFilePath);
-    EXPECT_EQ(argParser.retrieve("logFilePath"), logFilePath);
+    EXPECT_EQ(argParser.retrieve("l").first, logFilePath);
+    EXPECT_EQ(argParser.retrieve("logFilePath").first, logFilePath);
 }
 
 TEST_F(ArgParserTest, NotInCmdLineOptionTest)
 {
     ArgParser argParser{};
     argParser.addArgument(shortOption, longOption, helpMessage);
-    char *argv[] = {binaryPath.data(), logFilePathLongOption.data()};
+    char *argv[] = {&binaryPath[0], &logFilePathLongOption[0]};
     argParser.parse(2, argv);
 
-    EXPECT_EXCEPTION(argParser.retrieve("counter"), std::runtime_error, "Couldn't find [counter] in arguments");
-    EXPECT_EXCEPTION(argParser.retrieve("c"), std::runtime_error, "Couldn't find [c] in arguments");
+    EXPECT_EXCEPTION(argParser.retrieve("counter").first, std::runtime_error, "Couldn't find [counter] in arguments");
+    EXPECT_EXCEPTION(argParser.retrieve("c").first, std::runtime_error, "Couldn't find [c] in arguments");
 }
 
 TEST_F(ArgParserTest, DefaultValueTest)
@@ -51,11 +51,11 @@ TEST_F(ArgParserTest, DefaultValueTest)
     ArgParser argParser{};
     std::string defaultPath{"/home/"};
     argParser.addArgument(shortOption, longOption, helpMessage, defaultPath);
-    char *argv[] = {binaryPath.data()};
+    char *argv[] = {&binaryPath[0]};
     argParser.parse(1, argv); // no value was passed
 
-    EXPECT_EQ(argParser.retrieve("l"), defaultPath);
-    EXPECT_EQ(argParser.retrieve("logFilePath"), defaultPath);
+    EXPECT_EQ(argParser.retrieve("l").first, defaultPath);
+    EXPECT_EQ(argParser.retrieve("logFilePath").first, defaultPath);
 }
 
 TEST_F(ArgParserTest, DefaultValueOverrideTest)
@@ -63,23 +63,67 @@ TEST_F(ArgParserTest, DefaultValueOverrideTest)
     ArgParser argParser{};
     std::string defaultPath{"/home/"};
     argParser.addArgument(shortOption, longOption, helpMessage, defaultPath);
-    char *argv[] = {binaryPath.data(), logFilePathLongOption.data()};
+    char *argv[] = {&binaryPath[0], &logFilePathLongOption[0]};
     argParser.parse(2, argv);
 
-    EXPECT_EQ(argParser.retrieve("l"), logFilePath);
-    EXPECT_EQ(argParser.retrieve("logFilePath"), logFilePath);
+    EXPECT_EQ(argParser.retrieve("l").first, logFilePath);
+    EXPECT_EQ(argParser.retrieve("logFilePath").first, logFilePath);
 }
 
 TEST_F(ArgParserTest, IntRetrieveTest)
 {
     ArgParser argParser{};
     argParser.addArgument("-c", "--counter", "to get the counter");
+    argParser.addArgument("-w", "--waitTime", "to get the wait time");
+    argParser.addArgument("-m", "--multiplier", "to get the multiplier");
     std::string counterLongOption{"--counter=10"};
-    char *argv[] = {binaryPath.data(), counterLongOption.data()};
-    argParser.parse(2, argv);
+    std::string waitTimeLongOption{"--waitTime=15abc"}; // bad number
+    std::string multiplierLongOption{"--multiplier=-15"};
+    char *argv[] = {&binaryPath[0], &counterLongOption[0], &waitTimeLongOption[0], &multiplierLongOption[0]};
+    argParser.parse(4, argv);
 
-    EXPECT_EQ(argParser.retrieve<int>("c"), 10);
-    EXPECT_EQ(argParser.retrieve<int>("counter"), 10);
+    const auto c = argParser.retrieve<int>("c");
+    EXPECT_TRUE(c.second);
+    EXPECT_EQ(c.first, 10);
+
+    const auto counter = argParser.retrieve<int>("counter");
+    EXPECT_TRUE(counter.second);
+    EXPECT_EQ(counter.first, 10);
+
+    EXPECT_FALSE(argParser.retrieve<int>("w").second);
+    EXPECT_FALSE(argParser.retrieve<int>("waitTime").second);
+
+    const auto multiplier = argParser.retrieve<int>("m");
+    EXPECT_TRUE(multiplier.second);
+    EXPECT_EQ(multiplier.first, -15);
+}
+
+TEST_F(ArgParserTest, FloatRetrieveTest)
+{
+    ArgParser argParser{};
+    argParser.addArgument("-c", "--counter", "to get the counter");
+    argParser.addArgument("-w", "--waitTime", "to get the wait time");
+    argParser.addArgument("-m", "--multiplier", "to get the multiplier");
+    std::string counterLongOption{"--counter=10.4"};
+    std::string waitTimeLongOption{"--waitTime=15.48abc"}; // bad number
+    std::string multiplierLongOption{"--multiplier=-15.8"};
+    char *argv[] = {&binaryPath[0], &counterLongOption[0], &waitTimeLongOption[0], &multiplierLongOption[0]};
+    argParser.parse(4, argv);
+
+    const auto c = argParser.retrieve<float>("c");
+    EXPECT_TRUE(c.second);
+    EXPECT_FLOAT_EQ(c.first, 10.4);
+
+    const auto counter = argParser.retrieve<float>("counter");
+    EXPECT_TRUE(counter.second);
+    EXPECT_FLOAT_EQ(counter.first, 10.4);
+
+    EXPECT_FALSE(argParser.retrieve<float>("w").second);
+    EXPECT_FALSE(argParser.retrieve<float>("waitTime").second);
+
+    const auto multiplier = argParser.retrieve<float>("m");
+    EXPECT_TRUE(multiplier.second);
+    EXPECT_FLOAT_EQ(multiplier.first, -15.8);
 }
 
 TEST_F(ArgParserTest, BoolRetrieveTest)
@@ -88,15 +132,23 @@ TEST_F(ArgParserTest, BoolRetrieveTest)
     argParser.addArgument("-al", "--allowLogging", "to allow logging");
     argParser.addArgument("-aw", "--allowWaiting", "to allow waiting");
     argParser.addArgument("-ar", "--allowInterrupting", "to allow interrupting");
+    argParser.addArgument("-ap", "--allowParsing", "to allow parsing");
     std::string loggingArg{"--allowLogging=true"};
     std::string waitingArg{"-aw=false"};
     std::string interruptingArg{"-ar=True"};
-    char *argv[] = {binaryPath.data(), loggingArg.data(), waitingArg.data(), interruptingArg.data()};
-    argParser.parse(4, argv);
+    std::string parsingArg{"-ap=falsed"}; // bad argument
+    char *argv[] = {&binaryPath[0], &loggingArg[0], &waitingArg[0], &interruptingArg[0], &parsingArg[0]};
+    argParser.parse(5, argv);
 
-    EXPECT_TRUE(argParser.retrieve<bool>("al"));
-    EXPECT_FALSE(argParser.retrieve<bool>("aw"));
-    EXPECT_TRUE(argParser.retrieve<bool>("ar"));
+    auto al = argParser.retrieve<bool>("al");
+    auto aw = argParser.retrieve<bool>("aw");
+    auto ar = argParser.retrieve<bool>("ar");
+    auto ap = argParser.retrieve<bool>("ap");
+
+    EXPECT_TRUE(al.second && al.first);
+    EXPECT_TRUE(aw.second && !aw.first);
+    EXPECT_TRUE(ar.second && ar.first);
+    EXPECT_FALSE(ap.second);
 }
 
 TEST_F(ArgParserTest, InvalidArgTest)
@@ -104,7 +156,7 @@ TEST_F(ArgParserTest, InvalidArgTest)
     ArgParser argParser{};
     argParser.addArgument("-al", "--allowLogging", "to allow logging");
     EXPECT_EXCEPTION(argParser.parse(0, nullptr), std::runtime_error, "Invalid command line arguments");
-    char *argv[] = {binaryPath.data()};
+    char *argv[] = {&binaryPath[0]};
     EXPECT_EXCEPTION(argParser.parse(0, argv), std::runtime_error, "Invalid command line arguments");
     EXPECT_EXCEPTION(argParser.parse(1, nullptr), std::runtime_error, "Invalid command line arguments");
 }
@@ -161,7 +213,7 @@ TEST_F(ArgParserTest, ShortHelpStringTest)
 {
     ArgParser argParser{};
     std::string shortHelpString{"-h"};
-    char * argv[] = {binaryPath.data(), shortHelpString.data()};
+    char * argv[] = {&binaryPath[0], &shortHelpString[0]};
     argParser.parse(2, argv);
     EXPECT_TRUE(argParser.needHelp());
 }
@@ -170,7 +222,7 @@ TEST_F(ArgParserTest, LongHelpStringTest)
 {
     ArgParser argParser{};
     std::string LongHelpString{"--help"};
-    char * argv[] = {binaryPath.data(), LongHelpString.data()};
+    char * argv[] = {&binaryPath[0], &LongHelpString[0]};
     argParser.parse(2, argv);
     EXPECT_TRUE(argParser.needHelp());
 }
@@ -178,7 +230,7 @@ TEST_F(ArgParserTest, LongHelpStringTest)
 TEST_F(ArgParserTest, DoesntNeedHelpWhenNoArgTest)
 {
     ArgParser argParser{};
-    char * argv[] = {binaryPath.data()};
+    char * argv[] = {&binaryPath[0]};
     argParser.parse(1, argv);
     EXPECT_FALSE(argParser.needHelp());
 }
@@ -187,7 +239,7 @@ TEST_F(ArgParserTest, DoesntNeedHelpWhenArgsTest)
 {
     ArgParser argParser{};
     argParser.addArgument(shortOption, longOption, helpMessage);
-    char * argv[] = {binaryPath.data(), logFilePathLongOption.data()};
+    char * argv[] = {&binaryPath[0], &logFilePathLongOption[0]};
     argParser.parse(2, argv);
     EXPECT_FALSE(argParser.needHelp());
 }
@@ -195,7 +247,7 @@ TEST_F(ArgParserTest, DoesntNeedHelpWhenArgsTest)
 TEST_F(ArgParserTest, AppNameWhenNoArgsTest)
 {
     ArgParser argParser{};
-    char * argv[] = {binaryPath.data()};
+    char * argv[] = {&binaryPath[0]};
     argParser.parse(1, argv);
     EXPECT_EQ(binaryPath, argParser.getAppName());
 }
@@ -204,7 +256,7 @@ TEST_F(ArgParserTest, AppNameWhenArgsTest)
 {
     ArgParser argParser{};
     argParser.addArgument(shortOption, longOption, helpMessage);
-    char * argv[] = {binaryPath.data(), logFilePathLongOption.data()};
+    char * argv[] = {&binaryPath[0], &logFilePathLongOption[0]};
     argParser.parse(2, argv);
     EXPECT_EQ(binaryPath, argParser.getAppName());
 }
@@ -214,7 +266,7 @@ TEST_F(ArgParserTest, DescriptionWhenNoArgsTest)
     ArgParser argParser{"An app for testing"};
     EXPECT_EQ("An app for testing", argParser.getDescription());
 
-    char * argv[] = {binaryPath.data()};
+    char * argv[] = {&binaryPath[0]};
     argParser.parse(1, argv);
     EXPECT_EQ("An app for testing", argParser.getDescription()); // must be same even after parsing
     EXPECT_EQ(argParser.helpMsg(), "An app for testing\n"
@@ -227,7 +279,7 @@ TEST_F(ArgParserTest, DescriptionWhenArgsTest)
     EXPECT_EQ("An app for testing", argParser.getDescription());
 
     argParser.addArgument(shortOption, longOption, helpMessage);
-    char * argv[] = {binaryPath.data(), logFilePathLongOption.data()};
+    char * argv[] = {&binaryPath[0], &logFilePathLongOption[0]};
     argParser.parse(2, argv);
     EXPECT_EQ("An app for testing", argParser.getDescription()); // must be same even after parsing
     EXPECT_EQ(argParser.helpMsg(), "An app for testing\n"
