@@ -29,7 +29,7 @@ ParsedArg ParsedArg::parse_arg(const std::string& arg)
 
     if (!std::all_of(std::next(arg.cbegin(), pos) , arg.cend(), [](unsigned char c) { return std::isalnum(c); }))
     {
-        return ParsedArg{ArgTypeEnum::Invalid, arg};;
+        return ParsedArg{ArgTypeEnum::Invalid, arg};
     }
 
     if (pos == 1)

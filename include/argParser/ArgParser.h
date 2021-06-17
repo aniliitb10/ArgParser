@@ -42,7 +42,7 @@
  *      bool -> if source string is (case insensitive) True/False, then conversion succeeds to corresponding values
  *              otherwise conversion fails and pair.second is set to false
  *
- *  Help message:
+ * Help message:
  *      If application is run with -h or --help flag, then @needHelp returns true and
  *      user MUST call @helpMsg and then return because, in this case when parse() was called, no parsing was done
  *
@@ -80,8 +80,6 @@ private:
 
     // to describe the app
     std::string description;
-
-private:
 
     // this keeps the configured arguments
     // Adding -h, --help as this is the default arguments for help
