@@ -56,13 +56,14 @@ public:
 
     // to add an argument
     // e.g. argParser.addArgument("-w", "--waitTime", "Wait time");
-    ArgParser &addArgument(const std::string &shortOpt, const std::string &longOpt, const std::string &helpMsg);
+    ArgParser& addArgument(const std::string &shortOpt, const std::string &longOpt, const std::string &helpMsg,
+                           bool isMandatory=false);
 
     // to add an argument, with default value
     // 1) argParser.addArgument("-w", "--waitTime", "Wait time", 10);
     // 2) argParser.addArgument("-l", "--logfile", "Log file", "/var/tmp/app.log");
     template<typename T = std::string>
-    ArgParser &addArgument(const std::string &shortOpt, const std::string &longOpt, const std::string &helpMsg,
+    ArgParser& addArgument(const std::string &shortOpt, const std::string &longOpt, const std::string &helpMsg,
                            const T &defaultValue);
 
     // To parse the command line arguments
@@ -75,13 +76,14 @@ public:
 
     // To retrieve value corresponding to @arg
     // Check 2nd argument to ensure that conversion to type T succeeded
-    // if the arg was not configured/passed, it will throw exception
+    // if the @arg was not configured/passed, it will throw exception
     // all values of arguments are stored as std::string, hence conversion to std::string always succeeds
     template<typename T = std::string>
     std::pair<T, bool> retrieve(const std::string &arg);
 
-    // throws if conversion to type T fails
-    template<typename T>
+    // Retrieves the value for @arg and throws if conversion to type T fails
+    // - and like @retrieve: throws if the arg was not configured/passed
+    template<typename T = std::string>
     T retrieveMayThrow(const std::string &arg);
 
     // To get the help message for this application with configured arguments
@@ -101,7 +103,10 @@ private:
     void init() noexcept;
 
     // ensures that parse() was called
-    void validate_retrieval() const;
+    void validateRetrieval() const;
+
+    // check if all the mandatory arguments have been passed
+    void checkMandatoryArgs() const;
 
     static std::pair<ParsedArg, std::string> argValueParser(const std::string &arg);
 
@@ -130,9 +135,10 @@ private:
 };
 
 inline
-ArgParser &ArgParser::addArgument(const std::string &shortOpt, const std::string &longOpt, const std::string &helpMsg)
+ArgParser &ArgParser::addArgument(const std::string &shortOpt, const std::string &longOpt, const std::string &helpMsg,
+                                  bool isMandatory)
 {
-    return addArgumentImpl(Arg{shortOpt, longOpt, helpMsg});
+    return addArgumentImpl(Arg{shortOpt, longOpt, helpMsg, isMandatory});
 }
 
 template<typename T>
@@ -185,6 +191,8 @@ void ArgParser::parse(int argc, char *argv[])
             parsedArgs.emplace(arg, arg.getDefaultValue()); // it won't override if arg already exists
         }
     }
+
+    checkMandatoryArgs();
 }
 
 inline
@@ -218,7 +226,7 @@ const Arg &ArgParser::findArg(const ParsedArg &arg)
 template<typename T>
 std::pair<T, bool> ArgParser::retrieve(const std::string &arg)
 {
-    validate_retrieval();
+    validateRetrieval();
     const auto itr = std::find_if(parsedArgs.cbegin(), parsedArgs.cend(),
                                   [&arg](const std::pair<Arg, std::string> &argValuePair)
                                   { return argValuePair.first.match(arg); });
@@ -234,8 +242,8 @@ inline
 std::pair<T, bool> ArgParser::convert(const std::string &arg)
 {
     // I am aware that std::istringstream is slow
-    // but it is run for only few option suring startup and it does the job really well
-    // so, it is a good choice for C++14 (of C++17 has std::from_chars)
+    // but it is run for only few option during startup and it does the job really well
+    // so, it is a good choice for C++11 (of C++17 has std::from_chars)
     std::istringstream iss{arg};
     T result{};
 
@@ -293,7 +301,7 @@ const std::string &ArgParser::getDescription() const noexcept
 template<typename T>
 T ArgParser::retrieveMayThrow(const std::string &arg)
 {
-    const auto retrieved_pair = retrieve(arg);
+    const auto retrieved_pair = retrieve<T>(arg);
     if (!retrieved_pair.second)
     {
         throw std::runtime_error{fmt::format("Type conversion failed for {}", arg)};
@@ -324,7 +332,7 @@ ArgParser::ArgParser()
     init();
 }
 
-void ArgParser::validate_retrieval() const
+void ArgParser::validateRetrieval() const
 {
     if (appPath.empty())
     {
@@ -336,6 +344,21 @@ void ArgParser::validate_retrieval() const
     {
         throw std::runtime_error{"Application was run with '-h' or '--help', retrieving values is not allowed. "
                                  "Should call @helpMsg and return"};
+    }
+}
+
+void ArgParser::checkMandatoryArgs() const
+{
+    for (const auto& configuredArg : configuredArgs)
+    {
+        if (configuredArg.isMandatory())
+        {
+            if (parsedArgs.find(configuredArg) == parsedArgs.end())
+            {
+                throw std::runtime_error{fmt::format("Couldn't find [{}] mandatory argument in passed arguments",
+                                                     configuredArg.toString())};
+            }
+        }
     }
 }
 

@@ -13,8 +13,8 @@ class Arg
 {
 public:
 
-    Arg(const std::string &shortArg, const std::string &longArg, std::string helpMsg);
-    Arg(const std::string &shortArg, const std::string &longArg, std::string helpMsg, std::string defaultValue);
+    explicit Arg(const std::string &shortArg, const std::string &longArg, std::string helpMsg, bool isMandatory = false);
+    explicit Arg(const std::string &shortArg, const std::string &longArg, std::string helpMsg, std::string defaultValue);
 
     bool operator==(const Arg &rhs) const;
     bool operator!=(const Arg &rhs) const;
@@ -35,6 +35,9 @@ public:
 
     const std::string &getHelpMsg() const noexcept;
 
+    // Returns true if the argument is mandatory
+    bool isMandatory() const noexcept;
+
 private:
     void init_args(const std::string &shortArg, const std::string &longArg);
 
@@ -43,6 +46,7 @@ private:
     std::string helpMsg{};
     std::string defaultValue{};
     bool hasDefault{false};
+    bool mandatory{false};
 };
 
 namespace std
@@ -58,9 +62,10 @@ namespace std
 }
 
 inline
-Arg::Arg(const std::string &shortArg, const std::string &longArg, std::string helpMsg) :
+Arg::Arg(const std::string &shortArg, const std::string &longArg, std::string helpMsg, bool isMandatory) :
         helpMsg(std::move(helpMsg)),
-        hasDefault(false)
+        hasDefault(false),
+        mandatory(isMandatory)
 {
     init_args(shortArg, longArg);
 }
@@ -146,6 +151,8 @@ const std::string& Arg::getDefaultValue() const
 inline
 void Arg::init_args(const std::string &shortArg, const std::string &longArg)
 {
+    // @shortArg and @longArg are only being forwarded till ParsedArg::parse_arg
+    // hence, it is better to accept them as reference to const std::string instead of keep moving
     const auto shortParsedArg = ParsedArg::parse_arg(shortArg);
     const auto longParsedArg = ParsedArg::parse_arg(longArg);
 
@@ -173,13 +180,27 @@ std::string Arg::toVerboseString() const
 {
     if (hasDefaultValue())
     {
-        return fmt::format("{}\n\tdescription: {}, default: {}", toString(), helpMsg, getDefaultValue());
+        return fmt::format("{}\n\tdescription: {}, default: {}",
+                           toString(), helpMsg, getDefaultValue());
     }
+
+    if (isMandatory())
+    {
+        return fmt::format("{}\n\tdescription: {}, mandatory: {}",
+                           toString(), helpMsg, isMandatory() ? "true" : "false");
+    }
+
     return fmt::format("{}\n\tdescription: {}", toString(), helpMsg);
 }
 
 inline
-const std::string &Arg::getHelpMsg() const noexcept
+const std::string& Arg::getHelpMsg() const noexcept
 {
     return helpMsg;
+}
+
+inline
+bool Arg::isMandatory() const noexcept
+{
+    return mandatory;
 }

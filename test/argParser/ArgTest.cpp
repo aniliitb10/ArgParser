@@ -20,7 +20,12 @@ TEST_F(ArgTest, ContructionTest)
 
 TEST_F(ArgTest, DefaultValueTest)
 {
-    const Arg arg{"-c", "--count", "To get the counter", "58"};
+    // NON INTUITIVE BEHAVIOR of C++
+    // If default value is passed as "58", C++  will rather convert it to bool and call other constructor instead
+    // Although, it doesn't happen with ArgParser.addArgument() because @addArgument
+    // is accepting default value as a template argument (as template will be perfect match and converting to bool
+    // will be then next best match)
+    const Arg arg{"-c", "--count", "To get the counter", std::string{"58"}};
     EXPECT_EQ("c", arg.getShortOpt());
     EXPECT_EQ("count", arg.getLongOpt());
     EXPECT_EQ("-c, --count", arg.toString());
