@@ -52,10 +52,12 @@ class ArgParser
 public:
     ArgParser();
 
+    // This @description becomes part of help message
     explicit ArgParser(std::string description);
 
-    // to add an argument
-    // e.g. argParser.addArgument("-w", "--waitTime", "Wait time");
+    // To add an argument, e.g.:
+    // 1) argParser.addArgument("-w", "--waitTime", "Wait time");
+    // 2) argParser.addArgument("-l", "--logfile", "Log file path", true);
     ArgParser& addArgument(const std::string &shortOpt, const std::string &longOpt, const std::string &helpMsg,
                            bool isMandatory=false);
 
@@ -71,8 +73,7 @@ public:
     void parse(int argc, char *argv[]);
 
     // As the first command line argument is always application path, it returns the same
-    std::string getAppPath() const
-    { return appPath; };
+    const std::string& getAppPath() const noexcept;
 
     // To retrieve value corresponding to @arg
     // Check 2nd argument to ensure that conversion to type T succeeded
@@ -112,7 +113,7 @@ private:
 
     const Arg& findArg(const ParsedArg &arg);
 
-    static bool isHelpString(const std::string &arg);
+    static bool isHelpString(const std::string &arg) noexcept;
 
     ArgParser &addArgumentImpl(Arg &&arg);
 
@@ -273,7 +274,7 @@ std::string ArgParser::helpMsg() const noexcept
 }
 
 inline
-bool ArgParser::isHelpString(const std::string &arg)
+bool ArgParser::isHelpString(const std::string &arg) noexcept
 {
     static const std::string ShortHelpString{"-h"};
     static const std::string LongHelpString{"--help"};
@@ -360,6 +361,11 @@ void ArgParser::checkMandatoryArgs() const
             }
         }
     }
+}
+
+const std::string& ArgParser::getAppPath() const noexcept
+{
+    return appPath;
 }
 
 template<>
