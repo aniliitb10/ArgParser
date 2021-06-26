@@ -12,6 +12,7 @@ TEST_F(ArgTest, ContructionTest)
     const Arg arg{"-l", "--logfile", "logfile path"};
     EXPECT_EQ("l", arg.getShortOpt());
     EXPECT_EQ("logfile", arg.getLongOpt());
+    EXPECT_EQ("logfile path", arg.getHelpMsg());
     EXPECT_EQ("-l, --logfile", arg.toString());
     EXPECT_EQ("-l, --logfile\n\tdescription: logfile path", arg.toVerboseString());
     EXPECT_FALSE(arg.hasDefaultValue());

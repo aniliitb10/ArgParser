@@ -26,10 +26,14 @@ public:
     [[nodiscard]] bool match(const std::string &arg) const noexcept;
 
     [[nodiscard]] bool hasDefaultValue() const noexcept;
-    [[nodiscard]] const std::string& getDefaultValue() const noexcept;
+
+    // throws exception if no default value is set
+    [[nodiscard]] const std::string& getDefaultValue() const;
 
     [[nodiscard]] std::string toString() const;
     [[nodiscard]] std::string toVerboseString() const;
+
+    const std::string &getHelpMsg() const noexcept;
 
 private:
     void init_args(const std::string &shortArg, const std::string &longArg);
@@ -130,9 +134,13 @@ bool Arg::hasDefaultValue() const noexcept
 }
 
 inline
-const std::string& Arg::getDefaultValue() const noexcept
+const std::string& Arg::getDefaultValue() const
 {
-    return defaultValue;
+    if (hasDefaultValue())
+    {
+        return defaultValue;
+    }
+    throw std::runtime_error{fmt::format("There was no default set for: {}", toString())};
 }
 
 inline
@@ -168,4 +176,10 @@ std::string Arg::toVerboseString() const
         return fmt::format("{}\n\tdescription: {}, default: {}", toString(), helpMsg, getDefaultValue());
     }
     return fmt::format("{}\n\tdescription: {}", toString(), helpMsg);
+}
+
+inline
+const std::string &Arg::getHelpMsg() const noexcept
+{
+    return helpMsg;
 }

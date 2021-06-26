@@ -50,67 +50,102 @@
 class ArgParser
 {
 public:
-    ArgParser() = default;
+    ArgParser();
+
     explicit ArgParser(std::string description);
 
-    ArgParser& addArgument(const std::string& shortOpt, const std::string& longOpt, const std::string &helpMsg);
+    // to add an argument
+    // e.g. argParser.addArgument("-w", "--waitTime", "Wait time");
+    ArgParser &addArgument(const std::string &shortOpt, const std::string &longOpt, const std::string &helpMsg);
 
+    // to add an argument, with default value
+    // 1) argParser.addArgument("-w", "--waitTime", "Wait time", 10);
+    // 2) argParser.addArgument("-l", "--logfile", "Log file", "/var/tmp/app.log");
     template<typename T = std::string>
-    ArgParser& addArgument(const std::string& shortOpt, const std::string& longOpt, const std::string &helpMsg,
-                            const T& defaultValue);
+    ArgParser &addArgument(const std::string &shortOpt, const std::string &longOpt, const std::string &helpMsg,
+                           const T &defaultValue);
 
-    void parse(int argc, char * argv[]);
-    std::string getAppName() const { return appName; };
+    // To parse the command line arguments
+    // Should be called with the arguments of main function
+    void parse(int argc, char *argv[]);
 
-    template <typename T = std::string>
-    std::pair<T, bool> retrieve(const std::string& arg);
+    // As the first command line argument is always application path, it returns the same
+    std::string getAppPath() const
+    { return appPath; };
 
+    // To retrieve value corresponding to @arg
+    // Check 2nd argument to ensure that conversion to type T succeeded
+    // if the arg was not configured/passed, it will throw exception
+    // all values of arguments are stored as std::string, hence conversion to std::string always succeeds
+    template<typename T = std::string>
+    std::pair<T, bool> retrieve(const std::string &arg);
+
+    // throws if conversion to type T fails
+    template<typename T>
+    T retrieveMayThrow(const std::string &arg);
+
+    // To get the help message for this application with configured arguments
     std::string helpMsg() const noexcept;
+
+    // Returns true if application was called with -h or --help
     bool needHelp() const noexcept;
-    const std::string& getDescription() const noexcept;
+
+    // To get the description of application, the argument of the parameterized constructor
+    const std::string &getDescription() const noexcept;
+
+    // Returns true if the application was run with @arg as one of command line arguments
+    bool contains(const std::string &arg) const noexcept;
+
 private:
+    // preprocess to ensure that help works as expected
+    void init() noexcept;
 
-    static std::pair<ParsedArg, std::string> argValueParser(const std::string& arg);
+    // ensures that parse() was called
+    void validate_retrieval() const;
+
+    static std::pair<ParsedArg, std::string> argValueParser(const std::string &arg);
+
     const Arg& findArg(const ParsedArg &arg);
-    static bool isHelpString(const std::string& arg) ;
-    ArgParser& addArgumentImpl(Arg&& arg);
 
-    template <typename T>
-    static std::pair<T, bool> convert(const std::string& arg);
+    static bool isHelpString(const std::string &arg);
+
+    ArgParser &addArgumentImpl(Arg &&arg);
+
+    template<typename T>
+    static std::pair<T, bool> convert(const std::string &arg);
 
     // to describe the app
     std::string description;
 
     // this keeps the configured arguments
-    // Adding -h, --help as this is the default arguments for help
-    std::vector<Arg> configuredArgs{Arg{"-h", "--help", "to get this message"}}; // pre-populated with default values
+    std::vector<Arg> configuredArgs{};
 
     // this is used to ensure that any combination of configured arguments don't match
-    std::unordered_set<std::string> argKeys{"h", "help"}; // pre-populated with default values
+    std::unordered_set<std::string> argKeys{}; // pre-populated with default values
 
     // this is used to keep the configured argument against their passed values in command line arguments
     std::unordered_map<Arg, std::string> parsedArgs{};
-    std::string appName{};
+    std::string appPath{};
     bool isOnlyHelpString{false};
 };
 
 inline
-ArgParser& ArgParser::addArgument(const std::string &shortOpt, const std::string &longOpt, const std::string &helpMsg)
+ArgParser &ArgParser::addArgument(const std::string &shortOpt, const std::string &longOpt, const std::string &helpMsg)
 {
     return addArgumentImpl(Arg{shortOpt, longOpt, helpMsg});
 }
 
 template<typename T>
-ArgParser& ArgParser::addArgument(const std::string &shortOpt, const std::string &longOpt, const std::string &helpMsg,
-                                  const T& defaultValue)
+ArgParser &ArgParser::addArgument(const std::string &shortOpt, const std::string &longOpt, const std::string &helpMsg,
+                                  const T &defaultValue)
 {
     return addArgumentImpl(Arg{shortOpt, longOpt, helpMsg, fmt::to_string(defaultValue)});
 }
 
 inline
-ArgParser& ArgParser::addArgumentImpl(Arg&& arg)
+ArgParser &ArgParser::addArgumentImpl(Arg &&arg)
 {
-    if(!argKeys.emplace(arg.getShortOpt()).second || !argKeys.emplace(arg.getLongOpt()).second)
+    if (!argKeys.emplace(arg.getShortOpt()).second || !argKeys.emplace(arg.getLongOpt()).second)
     {
         throw std::runtime_error{fmt::format("Duplicate arguments: {}", arg.toString())};
     }
@@ -119,14 +154,14 @@ ArgParser& ArgParser::addArgumentImpl(Arg&& arg)
 }
 
 inline
-void ArgParser::parse(int argc, char * argv[])
+void ArgParser::parse(int argc, char *argv[])
 {
     if (argc < 1 || argv == nullptr)
     {
         throw std::runtime_error{"Invalid command line arguments"};
     }
 
-    appName = argv[0];
+    appPath = argv[0];
     if (argc == 2 && isHelpString(argv[1]))
     {
         isOnlyHelpString = true;
@@ -143,7 +178,7 @@ void ArgParser::parse(int argc, char * argv[])
         }
     }
     // now add those arguments which have default values
-    for (const auto& arg: configuredArgs)
+    for (const auto &arg: configuredArgs)
     {
         if (arg.hasDefaultValue())
         {
@@ -163,15 +198,16 @@ std::pair<ParsedArg, std::string> ArgParser::argValueParser(const std::string &a
                                              SEP, arg));
     }
 
-    const auto parsedArg {ParsedArg::parse_arg(arg.substr(0, pos))};
-    return std::make_pair(parsedArg, arg.substr(pos+1));
+    const auto parsedArg{ParsedArg::parse_arg(arg.substr(0, pos))};
+    return std::make_pair(parsedArg, arg.substr(pos + 1));
 }
 
 inline
-const Arg& ArgParser::findArg(const ParsedArg &arg)
+const Arg &ArgParser::findArg(const ParsedArg &arg)
 {
     auto argItr = std::find_if(configuredArgs.cbegin(), configuredArgs.cend(),
-                               [&arg](const Arg& eachArg){ return eachArg.match(arg);});
+                               [&arg](const Arg &eachArg)
+                               { return eachArg.match(arg); });
     if (argItr == configuredArgs.cend())
     {
         throw std::runtime_error(fmt::format("{} is not a known argument", arg.parsedArg));
@@ -182,9 +218,10 @@ const Arg& ArgParser::findArg(const ParsedArg &arg)
 template<typename T>
 std::pair<T, bool> ArgParser::retrieve(const std::string &arg)
 {
+    validate_retrieval();
     const auto itr = std::find_if(parsedArgs.cbegin(), parsedArgs.cend(),
-                                  [&arg](const std::pair<Arg, std::string>& argValuePair)
-                                  { return argValuePair.first.match(arg);});
+                                  [&arg](const std::pair<Arg, std::string> &argValuePair)
+                                  { return argValuePair.first.match(arg); });
     if (itr == parsedArgs.cend())
     {
         throw std::runtime_error(fmt::format("Couldn't find [{}] in arguments", arg));
@@ -220,7 +257,7 @@ std::string ArgParser::helpMsg() const noexcept
 
     os << "Following is a list of configured arguments:\n";
 
-    for (const auto& arg : configuredArgs)
+    for (const auto &arg : configuredArgs)
     {
         os << arg.toVerboseString() << "\n";
     }
@@ -244,11 +281,62 @@ bool ArgParser::needHelp() const noexcept
 
 inline
 ArgParser::ArgParser(std::string description) : description(std::move(description))
-{}
+{
+    init();
+}
 
 const std::string &ArgParser::getDescription() const noexcept
 {
     return description;
+}
+
+template<typename T>
+T ArgParser::retrieveMayThrow(const std::string &arg)
+{
+    const auto retrieved_pair = retrieve(arg);
+    if (!retrieved_pair.second)
+    {
+        throw std::runtime_error{fmt::format("Type conversion failed for {}", arg)};
+    }
+    return retrieved_pair.first;
+}
+
+bool ArgParser::contains(const std::string &arg) const noexcept
+{
+    // although iterating a map is not ideal but not command line arguments are always only few
+    return std::find_if(parsedArgs.cbegin(), parsedArgs.cend(), [&arg](const std::pair<Arg, std::string> &parsedArg)
+    {
+        return parsedArg.first.match(arg);
+    }) != parsedArgs.cend();
+}
+
+void ArgParser::init() noexcept
+{
+    // the default help argument
+    Arg helpArg{"-h", "--help", "to get this message"};
+    argKeys.emplace(helpArg.getShortOpt());
+    argKeys.emplace(helpArg.getLongOpt());
+    configuredArgs.emplace_back(std::move(helpArg));
+}
+
+ArgParser::ArgParser()
+{
+    init();
+}
+
+void ArgParser::validate_retrieval() const
+{
+    if (appPath.empty())
+    {
+        // this means parse() was never called
+        throw std::runtime_error{"parse() must be called with command line arguments before retrieving values"};
+    }
+
+    if (needHelp())
+    {
+        throw std::runtime_error{"Application was run with '-h' or '--help', retrieving values is not allowed. "
+                                 "Should call @helpMsg and return"};
+    }
 }
 
 template<>
@@ -266,7 +354,8 @@ std::pair<bool, bool> ArgParser::convert(const std::string &arg)
     static const std::string FALSE{"false"};
     std::string argCopy{arg};
     std::transform(argCopy.begin(), argCopy.end(), argCopy.begin(),
-                   [](unsigned char c) { return std::tolower(c);});
+                   [](unsigned char c)
+                   { return std::tolower(c); });
 
     if (argCopy == TRUE)
     {

@@ -249,7 +249,7 @@ TEST_F(ArgParserTest, AppNameWhenNoArgsTest)
     ArgParser argParser{};
     char * argv[] = {&binaryPath[0]};
     argParser.parse(1, argv);
-    EXPECT_EQ(binaryPath, argParser.getAppName());
+    EXPECT_EQ(binaryPath, argParser.getAppPath());
 }
 
 TEST_F(ArgParserTest, AppNameWhenArgsTest)
@@ -258,7 +258,7 @@ TEST_F(ArgParserTest, AppNameWhenArgsTest)
     argParser.addArgument(shortOption, longOption, helpMessage);
     char * argv[] = {&binaryPath[0], &logFilePathLongOption[0]};
     argParser.parse(2, argv);
-    EXPECT_EQ(binaryPath, argParser.getAppName());
+    EXPECT_EQ(binaryPath, argParser.getAppPath());
 }
 
 TEST_F(ArgParserTest, DescriptionWhenNoArgsTest)
@@ -286,4 +286,73 @@ TEST_F(ArgParserTest, DescriptionWhenArgsTest)
                                    "Following is a list of configured arguments:\n"
                                    "-h, --help\n\tdescription: to get this message\n"
                                    "-l, --logFilePath\n\tdescription: Log file path\n");
+}
+
+TEST_F(ArgParserTest, ContainsTest)
+{
+    ArgParser argParser{};
+    argParser.addArgument("-l", "--logFilePath", "to get log file path");
+    argParser.addArgument("-c", "--counter", "to get the counter", 10);
+    argParser.addArgument("-w", "--waitTime", "to get the wait time");
+    std::string counterLongOption{"--counter=10"};
+
+    char * argv[] = {&binaryPath[0], &logFilePathLongOption[0]};
+    argParser.parse(2, argv);
+
+    EXPECT_TRUE(argParser.contains("l"));
+    EXPECT_TRUE(argParser.contains("logFilePath"));
+
+    // because it has default value, it must return true
+    EXPECT_TRUE(argParser.contains("c"));
+    EXPECT_TRUE(argParser.contains("counter"));
+
+    // although configured but it was not run with, hence, it must return false
+    EXPECT_FALSE(argParser.contains("w"));
+    EXPECT_FALSE(argParser.contains("waitTime"));
+
+    // with '-' or '--' should return false
+    EXPECT_FALSE(argParser.contains(shortOption));
+    EXPECT_FALSE(argParser.contains(longOption));
+
+    // any other random string query should return false
+    EXPECT_FALSE(argParser.contains(""));
+    EXPECT_FALSE(argParser.contains(" "));
+    EXPECT_FALSE(argParser.contains("  "));
+    EXPECT_FALSE(argParser.contains("unexpected"));
+
+    // 'h' or 'help' also should return false as there is no corresponding value
+    EXPECT_FALSE(argParser.contains("h"));
+    EXPECT_FALSE(argParser.contains("help"));
+}
+
+TEST_F(ArgParserTest, BadRetrivalTest)
+{
+    ArgParser argParser{};
+    argParser.addArgument(shortOption, longOption, helpMessage);
+    EXPECT_EXCEPTION(argParser.retrieve("l"), std::runtime_error,
+                     "parse() must be called with command line arguments before retrieving values");
+    EXPECT_EXCEPTION(argParser.retrieve("logFilePath"), std::runtime_error,
+                     "parse() must be called with command line arguments before retrieving values");
+    EXPECT_EXCEPTION(argParser.retrieve(""), std::runtime_error,
+                     "parse() must be called with command line arguments before retrieving values");
+    EXPECT_EXCEPTION(argParser.retrieve("anyArgument"), std::runtime_error,
+                     "parse() must be called with command line arguments before retrieving values");
+
+    std::string helpArg{"-h"};
+    char * argv[] = {&binaryPath[0], &helpArg[0]};
+    argParser.parse(2, argv);
+    EXPECT_EXCEPTION(argParser.retrieve("l"), std::runtime_error,
+                     "Application was run with '-h' or '--help', retrieving values is not allowed. "
+                     "Should call @helpMsg and return");
+
+    // in fact, same behavior for any argument
+    EXPECT_EXCEPTION(argParser.retrieve("anyArgument"), std::runtime_error,
+                     "Application was run with '-h' or '--help', retrieving values is not allowed. "
+                     "Should call @helpMsg and return");
+    EXPECT_EXCEPTION(argParser.retrieve(""), std::runtime_error,
+                     "Application was run with '-h' or '--help', retrieving values is not allowed. "
+                     "Should call @helpMsg and return");
+    EXPECT_EXCEPTION(argParser.retrieve(" "), std::runtime_error,
+                     "Application was run with '-h' or '--help', retrieving values is not allowed. "
+                     "Should call @helpMsg and return");
 }
