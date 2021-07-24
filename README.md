@@ -1,4 +1,4 @@
-A cross-platform and easy-to-use header-only library written in C++17 to parse command line arguments:
+A single-file, cross-platform and easy-to-use header-only library written in C++17 to parse command line arguments:
 
 ###### Example usage
 ```
@@ -7,6 +7,7 @@ A cross-platform and easy-to-use header-only library written in C++17 to parse c
 
 int main(int argc, char* argv[])
 {
+    // The passed string becomes part of description when exeuted with -h or --help
     ArgParser argParser{"A demo example for argParser"};
     
     // true as the last argument makes it a mandatory argument
@@ -61,23 +62,40 @@ As this a single-file header-only library, just copy `argParser/ArgParser.h` in 
 
 ###### Retrieving values:
 ```      
-std::string logFile = *argParser.retrieve("l") // or *argParser.retrieve("logFile")
-const auto valueOpt = argParser.retrieve<int>(w); // or argParser.retrieve<int>("waitTime")
-if(valueOpt) // check that conversion succeeded
+std::string logFile = argParser.retrieve("l").value()
+// or argParser.retrieve("logFile").value()
+
+const auto valueOpt = argParser.retrieve<int>(w).value();
+// or argParser.retrieve<int>("wait_time").value()
+if(valueOpt) // check if conversion succeeded
 {
-    const auto waitTime = *valueOpt
+    const auto wait_time = valueOpt.value()
 }
 ```
-
 Note that `@retrieve` returns `std::optional<T>` where status of `std::optional` represents
 - if the arg was configured and found command line options, and
 - if the conversion from `std::string` to `T` was successful
 So, the status MUST be checked before using the retrieved value
 
 `@retrieve` has been specialized for: `std::string`, `bool` and `char`
-`std::string` -> no need to check the status of optional because conversion status will always be true
-`bool` -> if source string is `"true"`/`"false"`, then conversion succeeds
-          otherwise conversion fails and returned value is std::nullopt
+- `std::string` -> no need to check the status of optional because conversion will always succeed
+- `bool` -> if source value is `"true"`/`"false"`, then conversion succeeds
+          otherwise conversion fails and returned value is `std::nullopt`
+- `char` -> the conversion will succeed only if value has just one character 
+
+There is another way to directly retrieve values (without `std::optional`) but it will throw if aything goes wrong, so it is better wrap such code blocks inside `try-catch` block
+```
+try
+{
+    const auto waitTime = argParser.retrieveMayThrow<int>("wait_time");
+    const auto logfile = argParser.retrieveMayThrow("logfile");
+}
+catch (const std::runtime_error& e)
+{
+    std::cerr << "Error while extracting values: " << e.what() << "\n";
+}
+    
+```
 
 ###### Help message:
 If application is run with `-h` or `--help` flag, then `@needHelp` returns true and user should call `@helpMsg`
