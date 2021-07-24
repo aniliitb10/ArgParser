@@ -37,7 +37,7 @@ TEST_F(ArgParserTest, ShortOptionConstructionTest)
 {
     ArgParser argParser{};
     argParser.addArgument(logFileShortOption, logFileLongOption, logFileHelpMessage);
-    char *argv[] = {&binaryPath[0], &logFilePathShortOption[0]};
+    char *argv[] = {binaryPath.data(), logFilePathShortOption.data()};
     argParser.parse(2, argv);
 
     EXPECT_EQ(argParser.retrieve("l"), logFilePath);
@@ -48,7 +48,7 @@ TEST_F(ArgParserTest, LongOptionConstructionTest)
 {
     ArgParser argParser{};
     argParser.addArgument(logFileShortOption, logFileLongOption, logFileHelpMessage);
-    char *argv[] = {&binaryPath[0], &logFilePathLongOption[0]};
+    char *argv[] = {binaryPath.data(), logFilePathLongOption.data()};
     argParser.parse(2, argv);
 
     EXPECT_EQ(argParser.retrieve("l"), logFilePath);
@@ -59,7 +59,7 @@ TEST_F(ArgParserTest, NotInCmdLineOptionTest)
 {
     ArgParser argParser{};
     argParser.addArgument(logFileShortOption, logFileLongOption, logFileHelpMessage);
-    char *argv[] = {&binaryPath[0], &logFilePathLongOption[0]};
+    char *argv[] = {binaryPath.data(), logFilePathLongOption.data()};
     argParser.parse(2, argv);
 
     EXPECT_FALSE(argParser.retrieve("counter"));
@@ -74,7 +74,7 @@ TEST_F(ArgParserTest, DefaultValueTest)
     argParser.addArgumentWithDefault("-e", "--enable", logFileHelpMessage, true);
     argParser.addArgumentWithDefault("-d", "--disable", logFileHelpMessage, false);
     std::string disableStr{"-d=true"};
-    char *argv[] = {&binaryPath[0], &disableStr[0]};
+    char *argv[] = {binaryPath.data(), disableStr.data()};
     argParser.parse(2, argv); // no value was passed
 
     EXPECT_EQ(argParser.retrieve("l"), defaultPath);
@@ -88,7 +88,7 @@ TEST_F(ArgParserTest, DefaultValueOverrideTest)
     ArgParser argParser{};
     std::string defaultPath{"/home/"};
     argParser.addArgumentWithDefault(logFileShortOption, logFileLongOption, logFileHelpMessage, defaultPath);
-    char *argv[] = {&binaryPath[0], &logFilePathLongOption[0]};
+    char *argv[] = {binaryPath.data(), logFilePathLongOption.data()};
     argParser.parse(2, argv);
 
     EXPECT_EQ(argParser.retrieve("l"), logFilePath);
@@ -104,7 +104,7 @@ TEST_F(ArgParserTest, IntRetrieveTest)
     std::string counterLongOption{"--counter=10"};
     std::string waitTimeLongOption{"--waitTime=15abc"}; // bad number
     std::string multiplierLongOption{"--multiplier=-15"};
-    char *argv[] = {&binaryPath[0], &counterLongOption[0], &waitTimeLongOption[0], &multiplierLongOption[0]};
+    char *argv[] = {binaryPath.data(), counterLongOption.data(), waitTimeLongOption.data(), multiplierLongOption.data()};
     argParser.parse(4, argv);
 
     const auto c = argParser.retrieve<int>("c");
@@ -132,7 +132,7 @@ TEST_F(ArgParserTest, FloatRetrieveTest)
     std::string counterLongOption{"--counter=10.4"};
     std::string waitTimeLongOption{"--waitTime=15.48abc"}; // bad number
     std::string multiplierLongOption{"--multiplier=-15.8"};
-    char *argv[] = {&binaryPath[0], &counterLongOption[0], &waitTimeLongOption[0], &multiplierLongOption[0]};
+    char *argv[] = {binaryPath.data(), counterLongOption.data(), waitTimeLongOption.data(), multiplierLongOption.data()};
     argParser.parse(4, argv);
 
     const auto c = argParser.retrieve<float>("c");
@@ -162,7 +162,7 @@ TEST_F(ArgParserTest, BoolRetrieveTest)
     std::string waitingArg{"-aw=false"};
     std::string interruptingArg{"-ar=True"};
     std::string parsingArg{"-ap=falsed"}; // bad argument
-    char *argv[] = {&binaryPath[0], &loggingArg[0], &waitingArg[0], &interruptingArg[0], &parsingArg[0]};
+    char *argv[] = {binaryPath.data(), loggingArg.data(), waitingArg.data(), interruptingArg.data(), parsingArg.data()};
     argParser.parse(5, argv);
 
     auto al = argParser.retrieve<bool>("al");
@@ -202,7 +202,7 @@ TEST_F(ArgParserTest, InvalidArgTest)
     ArgParser argParser{};
     argParser.addArgument("-al", "--allowLogging", "to allow logging");
     EXPECT_EXCEPTION(argParser.parse(0, nullptr), std::runtime_error, "Invalid command line arguments");
-    char *argv[] = {&binaryPath[0]};
+    char *argv[] = {binaryPath.data()};
     EXPECT_EXCEPTION(argParser.parse(0, argv), std::runtime_error, "Invalid command line arguments");
     EXPECT_EXCEPTION(argParser.parse(1, nullptr), std::runtime_error, "Invalid command line arguments");
 }
@@ -273,7 +273,7 @@ TEST_F(ArgParserTest, ShortHelpStringTest)
 {
     ArgParser argParser{};
     std::string shortHelpString{"-h"};
-    char * argv[] = {&binaryPath[0], &shortHelpString[0]};
+    char * argv[] = {binaryPath.data(), shortHelpString.data()};
     argParser.parse(2, argv);
     EXPECT_TRUE(argParser.needHelp());
 }
@@ -282,7 +282,7 @@ TEST_F(ArgParserTest, LongHelpStringTest)
 {
     ArgParser argParser{};
     std::string LongHelpString{"--help"};
-    char * argv[] = {&binaryPath[0], &LongHelpString[0]};
+    char * argv[] = {binaryPath.data(), LongHelpString.data()};
     argParser.parse(2, argv);
     EXPECT_TRUE(argParser.needHelp());
 }
@@ -290,7 +290,7 @@ TEST_F(ArgParserTest, LongHelpStringTest)
 TEST_F(ArgParserTest, DoesntNeedHelpWhenNoArgTest)
 {
     ArgParser argParser{};
-    char * argv[] = {&binaryPath[0]};
+    char * argv[] = {binaryPath.data()};
     argParser.parse(1, argv);
     EXPECT_FALSE(argParser.needHelp());
 }
@@ -299,7 +299,7 @@ TEST_F(ArgParserTest, DoesntNeedHelpWhenArgsTest)
 {
     ArgParser argParser{};
     argParser.addArgument(logFileShortOption, logFileLongOption, logFileHelpMessage);
-    char * argv[] = {&binaryPath[0], &logFilePathLongOption[0]};
+    char * argv[] = {binaryPath.data(), logFilePathLongOption.data()};
     argParser.parse(2, argv);
     EXPECT_FALSE(argParser.needHelp());
 }
@@ -307,7 +307,7 @@ TEST_F(ArgParserTest, DoesntNeedHelpWhenArgsTest)
 TEST_F(ArgParserTest, AppNameWhenNoArgsTest)
 {
     ArgParser argParser{};
-    char * argv[] = {&binaryPath[0]};
+    char * argv[] = {binaryPath.data()};
     argParser.parse(1, argv);
     EXPECT_EQ(binaryPath, argParser.getAppPath());
 }
@@ -316,7 +316,7 @@ TEST_F(ArgParserTest, AppNameWhenArgsTest)
 {
     ArgParser argParser{};
     argParser.addArgument(logFileShortOption, logFileLongOption, logFileHelpMessage);
-    char * argv[] = {&binaryPath[0], &logFilePathLongOption[0]};
+    char * argv[] = {binaryPath.data(), logFilePathLongOption.data()};
     argParser.parse(2, argv);
     EXPECT_EQ(binaryPath, argParser.getAppPath());
 }
@@ -326,7 +326,7 @@ TEST_F(ArgParserTest, DescriptionWhenNoArgsTest)
     ArgParser argParser{"An app for testing"};
     EXPECT_EQ("An app for testing", argParser.getDescription());
 
-    char * argv[] = {&binaryPath[0]};
+    char * argv[] = {binaryPath.data()};
     argParser.parse(1, argv);
     EXPECT_EQ("An app for testing", argParser.getDescription()); // must be same even after parsing
     EXPECT_EQ(argParser.helpMsg(), "An app for testing\n"
@@ -339,7 +339,7 @@ TEST_F(ArgParserTest, DescriptionWhenArgsTest)
     EXPECT_EQ("An app for testing", argParser.getDescription());
 
     argParser.addArgument(logFileShortOption, logFileLongOption, logFileHelpMessage);
-    char * argv[] = {&binaryPath[0], &logFilePathLongOption[0]};
+    char * argv[] = {binaryPath.data(), logFilePathLongOption.data()};
     argParser.parse(2, argv);
     EXPECT_EQ("An app for testing", argParser.getDescription()); // must be same even after parsing
     EXPECT_EQ(argParser.helpMsg(), "An app for testing\n"
@@ -356,7 +356,7 @@ TEST_F(ArgParserTest, ContainsTest)
     argParser.addArgument("-w", "--waitTime", "to get the wait time");
     std::string counterLongOption{"--counter=10"};
 
-    char * argv[] = {&binaryPath[0], &logFilePathLongOption[0]};
+    char * argv[] = {binaryPath.data(), logFilePathLongOption.data()};
     argParser.parse(2, argv);
 
     EXPECT_TRUE(argParser.contains("l"));
@@ -399,7 +399,7 @@ TEST_F(ArgParserTest, BadRetrivalTest)
                      "parse() must be called with command line arguments before retrieving values");
 
     std::string helpArg{"-h"};
-    char * argv[] = {&binaryPath[0], &helpArg[0]};
+    char * argv[] = {binaryPath.data(), helpArg.data()};
     argParser.parse(2, argv);
     EXPECT_EXCEPTION(argParser.retrieve("l"), std::runtime_error,
                      "Application was run with '-h' or '--help', retrieving values is not allowed. "
@@ -426,7 +426,7 @@ TEST_F(ArgParserTest, ArgParserChainingAndRetrieveMayThrowTest)
     std::string counterLongOption{"--counter=10"};
 
     std::string waitOption{"-w=15.5"};
-    char* argv[] = {&binaryPath[0], &logFilePathShortOption[0], &waitOption[0]};
+    char* argv[] = {binaryPath.data(), logFilePathShortOption.data(), waitOption.data()};
     argParser.parse(3, argv);
 
     EXPECT_EQ(argParser.retrieveMayThrow("l"), logFilePath);
@@ -443,7 +443,7 @@ TEST_F(ArgParserTest, ManadatoryArgumentTest)
 {
     ArgParser argParser{};
     argParser.addArgument(logFileShortOption, logFileLongOption, logFileHelpMessage, true);
-    char * argv[] = {&binaryPath[0]};
+    char * argv[] = {binaryPath.data()};
 
     EXPECT_EXCEPTION(argParser.parse(1, argv), std::runtime_error,
                      "Couldn't find [-l, --logFilePath] mandatory argument in passed arguments");
@@ -456,7 +456,7 @@ TEST_F(ArgParserTest, MultiManadatoryArgumentTest)
     argParser.addArgument("-c", "--counter", "to get the counter", true);
 
     std::string counterArg{"-c=10"};
-    char * argv[] = {&binaryPath[0], &logFilePathLongOption[0]};
+    char * argv[] = {binaryPath.data(), logFilePathLongOption.data()};
 
     EXPECT_EXCEPTION(argParser.parse(2, argv), std::runtime_error,
                      "Couldn't find [-c, --counter] mandatory argument in passed arguments");
@@ -476,7 +476,7 @@ TEST_F(ArgParserTest, CombinedManadatoryArgumentTest)
     std::string waitArg{"-w=12"};
     std::string numberArg{"-n=6"};
 
-    char * argv[] = {&binaryPath[0], &logFilePathLongOption[0], &counterArg[0], &waitArg[0], &numberArg[0]};
+    char * argv[] = {binaryPath.data(), logFilePathLongOption.data(), counterArg.data(), waitArg.data(), numberArg.data()};
 
     argParser.parse(5, argv);
     EXPECT_EQ(argParser.retrieveMayThrow("l"), logFilePath);
