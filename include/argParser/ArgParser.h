@@ -28,20 +28,19 @@
  * Retrieving values:
  *      std::string logFile = *argParser.retrieve("l") // or *argParser.retrieve("logFile")
  *      const auto valueOpt = argParser.retrieve<int>(w); // or argParser.retrieve<int>("waitTime")
- *      assert(valueOpt) // assert that conversion succeeded
- *      const auto waitTime = *valueOpt
+ *      if(valueOpt) // assert that conversion succeeded
+ *      {
+ *          const auto waitTime = *valueOpt
+ *      }
  *
  *      @Note that @retrieve returns std::optional<T> where status of std::optional represents
  *       - if the arg was configured and found command line options
  *       - and if the conversion from std::string to T was successful
  *      So, the status MUST be checked before using the retrieved value
  *
- *      If retrieval fails then there is no point of using the retrieved value because it might be
- *      different from the expected value
- *
  *      @retrieve has been specialized for: std::string, bool and char
  *      std::string -> no need to check the status of optional because conversion status will always be true
- *      bool -> if source string is (case sensitive) true/false, then conversion succeeds to corresponding values
+ *      bool -> if source string is (case sensitive) "true"/"false", then conversion succeeds to corresponding values
  *              otherwise conversion fails and returned value is std::nullopt
  *
  * Help message:
@@ -118,7 +117,7 @@ public:
 
 private:
 
-    // Following is a set of structs and enum
+    // Following is a set of helper classes and enum
     // We don't need to expose these to the user, hence made them private
     //  - little difficult to read and maintain, but better for user
     //  - user just sees the public function of ArgParser
@@ -137,6 +136,7 @@ private:
         static ParsedArg parse_arg(const std::string &arg);
     };
 
+    // A class which deals with parsing configured arguments
     class Arg
     {
     public:
@@ -419,6 +419,7 @@ ArgParser::ArgParser(std::string description) : description(std::move(descriptio
     init();
 }
 
+inline
 const std::string &ArgParser::getDescription() const noexcept
 {
     return description;
@@ -435,6 +436,7 @@ T ArgParser::retrieveMayThrow(const std::string &arg) const
     throw std::runtime_error{concatenate("Type conversion failed for ", arg)};
 }
 
+inline
 bool ArgParser::contains(const std::string &arg) const noexcept
 {
     // although iterating a map is not ideal but not command line arguments are always only few
@@ -444,6 +446,7 @@ bool ArgParser::contains(const std::string &arg) const noexcept
     }) != parsedArgs.cend();
 }
 
+inline
 void ArgParser::init() noexcept
 {
     // the default help argument
@@ -453,11 +456,13 @@ void ArgParser::init() noexcept
     configuredArgs.emplace_back(std::move(helpArg));
 }
 
+inline
 ArgParser::ArgParser()
 {
     init();
 }
 
+inline
 void ArgParser::validateRetrieval() const
 {
     if (appPath.empty())
@@ -473,6 +478,7 @@ void ArgParser::validateRetrieval() const
     }
 }
 
+inline
 void ArgParser::checkMandatoryArgs() const
 {
     for (const auto &configuredArg : configuredArgs)
@@ -488,6 +494,7 @@ void ArgParser::checkMandatoryArgs() const
     }
 }
 
+inline
 const std::string &ArgParser::getAppPath() const noexcept
 {
     return appPath;
