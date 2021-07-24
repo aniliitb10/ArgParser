@@ -8,7 +8,11 @@ A cross-platform and easy-to-use header-only library written in C++17 to parse c
 int main(int argc, char* argv[])
 {
     ArgParser argParser{"A demo example for argParser"};
-    argParser.addArgument("-l", "--logfile", "To get the log file", true); // true makes it a mandatory argument
+    
+    // true as the last argument makes it a mandatory argument
+    argParser.addArgument("-l", "--logfile", "To get the log file", true);
+    
+    // as the function name suggests, 5 is the default wait_time
     argParser.addArgumentWithDefault("-w", "--wait_time", "To get the wait time", 5);
 
     argParser.parse(argc, argv);
@@ -23,7 +27,7 @@ int main(int argc, char* argv[])
 }
 ```
 
-Following is the output when run with -h or --help
+Following is the output when run with `-h` or `--help`
 ```
 ~Projects/ArgParser$ ./argParser --help
 A demo example for argParser
@@ -52,7 +56,7 @@ Wait time is: 5
 ```
 
 ###### Install
-As this a single-file header-only library, just copy `argParser/ArgParser.h` in just your project
+As this a single-file header-only library, just copy `argParser/ArgParser.h` in your project
 
 
 ###### Retrieving values:
@@ -65,8 +69,8 @@ if(valueOpt) // check that conversion succeeded
 }
 ```
 
-@Note that @retrieve returns `std::optional<T>` where status of std::optional represents
-- if the arg was configured and found command line options
+Note that `@retrieve` returns `std::optional<T>` where status of `std::optional` represents
+- if the arg was configured and found command line options, and
 - if the conversion from `std::string` to `T` was successful
 So, the status MUST be checked before using the retrieved value
 
@@ -76,14 +80,15 @@ So, the status MUST be checked before using the retrieved value
           otherwise conversion fails and returned value is std::nullopt
 
 ###### Help message:
-If application is run with `-h` or `--help` flag, then `@needHelp` returns true and user should call @helpMsg
-and must return because, in this case when parse() was called, no actual parsing was done
+If application is run with `-h` or `--help` flag, then `@needHelp` returns true and user should call `@helpMsg`
+and must return because, in this case when `parse()` was called, no actual parsing was done
 Otherwise, any attempt to retrieve any value will throw exception
 
 ###### Additional details:
 - Functions which are not noexcept might throw exception
 - arguments must only consist of alphanumeric characters and underscores
 - short option must be shorter than the long option
+- all parsed arguments are stored as `std::string`, so appropriate template type is needed to convert 
 
 ###### Dependencies
 - No dependency for the header file, but it needs C++17 compiler
