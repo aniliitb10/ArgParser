@@ -1,7 +1,7 @@
 A single-file, cross-platform and easy-to-use header-only library written in C++17 to parse command line arguments:
 
 ###### Example usage
-```
+```C++
 #include <argParser/ArgParser.h>
 #include <iostream>
 
@@ -61,7 +61,7 @@ As this a single-file header-only library, just copy `argParser/ArgParser.h` in 
 
 
 ###### Retrieving values:
-```      
+```C++
 std::string logFile = argParser.retrieve("l").value()
 // or argParser.retrieve("logFile").value()
 
@@ -84,7 +84,7 @@ So, the status MUST be checked before using the retrieved value
 - `char` -> the conversion will succeed only if value has just one character 
 
 There is another way to directly retrieve values (without `std::optional`) but it will throw if aything goes wrong, so it is better wrap such code blocks inside `try-catch` block
-```
+```C++
 try
 {
     const auto waitTime = argParser.retrieveMayThrow<int>("wait_time");
